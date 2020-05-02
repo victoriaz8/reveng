@@ -690,7 +690,7 @@ def main():
     -x  xor
     -search <string>
     -term   termination analysis
-    -L log
+    -L logs to directory of input executable
     # TODO: better flag parsing
     """
     # or idat.exe
