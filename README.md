@@ -36,6 +36,7 @@ or
 or
 -p int3 patch
 Don't ever do -int3 (for example). The flag parsing could definitely use some work.
+-L to log to a file called aa_outfile.txt in the directory that the input executable is in
 
 Limitations
 - Architecture is limited to x86 windows executables
@@ -61,7 +62,7 @@ Make sure you have IDA, IDAPython 64-bit v7.4.0 and Python2.7 (yeah I know, sorr
 
 Place the python file in the folder with your ida executables
 
-run: ida64 -S"<path\to\pythonscript> <flag> <flag> <etc>" <path\to\exe>
+run: `ida64 -S"<path\to\pythonscript> <flag> <flag> <etc>" <path\to\exe>`
 
 ```
 Flags:
