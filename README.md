@@ -63,7 +63,7 @@ Place the python file in the folder with your ida executables
 
 run: ida64 -S"<path\to\pythonscript> <flag> <flag> <etc>" <path\to\exe>
 
-
+```
 Flags:
     -a  all (except patch)
     -p  <type> (autopatch - see below)
@@ -78,4 +78,4 @@ Flags:
     -search <string> # NOT YET IMPLEMENTED
     -t   termination analysis
     -L logs to a file called "aa_outfile.txt" in the directory of input executable
-
+```
