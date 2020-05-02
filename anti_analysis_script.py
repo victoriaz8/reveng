@@ -689,7 +689,7 @@ def main():
     -d  debug
     -x  xor
     -search <string>
-    -term   termination analysis
+    -f   termination analysis
     -L logs to directory of input executable
     # TODO: better flag parsing
     """
