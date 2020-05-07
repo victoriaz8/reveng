@@ -109,14 +109,14 @@ def start():
     log("###########################\n")
 
 def finish():
-    log("\n\n##############	Analysis Finished	#############\n")
+    log("\n\n############## Analysis Finished   #############\n")
 
 
 def is_jump(hd):
-	byte = ida_bytes.get_byte(hd)
-	if (byte >= 0x72) and (byte <= 0x7F):
-		return True
-	return False
+    byte = ida_bytes.get_byte(hd)
+    if (byte >= 0x72) and (byte <= 0x7F):
+        return True
+    return False
 
 def log(*string):
     if "-L" in flags:
@@ -145,7 +145,7 @@ def log(*string):
                 fp.write("\n")
         fp.close()
             
-			
+            
     for s in string:
         if type(s) is dict:
             for key in s.keys():
@@ -157,6 +157,9 @@ def log_results():
     if cpuid_flags():
         log("\n##### CPUID contexts:")
         log(cpuid_addrs)
+        log("Actual CPUID addresses:")
+        for cpu in cpuid_addrs.keys():
+            log(("0x%08x"%(cpu) + " : " "0x%08x"%(cpuid_addrs[cpu])))
 
     if int3_flags():
         log("\n##### INT3 instructions found: " + str(len(int3_loc)))
@@ -181,7 +184,7 @@ def log_results():
     if xor_flags():
         log("\n##### Fishy XOR anti-analysis contexts:")
         log("head:\tsrc\tdst\tfunc loc\txor loc")
-        log(xor_loc)	
+        log(xor_loc)    
 
     if time_flags():
         log("\n##### Time-based anti-analysis contexts:")
@@ -230,15 +233,15 @@ def hijack(addr):
     # log(orig)
     if is_jump(addr):        
         byte = ida_bytes.get_byte(addr)
-        if (byte >= 0x72) and (byte <= 0x7F):	        
-	        if(byte % 2):
-	            # is odd
-	            patch_byte(addr, byte-1)
-	        else:
-	            # is even
-	            patch_byte(addr, byte+1)
-	        # log(GetDisasm(addr))
-	        return "nice"
+        if (byte >= 0x72) and (byte <= 0x7F):           
+            if(byte % 2):
+                # is odd
+                patch_byte(addr, byte-1)
+            else:
+                # is even
+                patch_byte(addr, byte+1)
+            # log(GetDisasm(addr))
+            return "nice"
 
 
 def hijack_int3(addr):   
@@ -254,22 +257,22 @@ def findthejump(head):
     return 0
 
 def trace_back(head, target):
-	# target is a register
-	reg = target
-	hd = head
-	function_head = get_func_attr(hd, idc.FUNCATTR_START)
-	while(hd != function_head):
-		hd = prev_head(hd)
-		# if reg/target is 'al' or 'eax', find the latest 'call'
-		if reg in "al" or reg in "eax":
-			if print_insn_mnem(hd) in "call":
-				return print_operand(hd, 0)		
-		# if reg/target is operand 0, and op1 is not a reg, return op1
-		if print_operand(hd, 0) in reg and print_insn_mnem(hd) in "mov":
-			if get_operand_type(hd, 1) != o_reg:
-				return print_operand(hd, 1)
-			else:
-				reg = print_operand(hd, 1)
+    # target is a register
+    reg = target
+    hd = head
+    function_head = get_func_attr(hd, idc.FUNCATTR_START)
+    while(hd != function_head):
+        hd = prev_head(hd)
+        # if reg/target is 'al' or 'eax', find the latest 'call'
+        if reg in "al" or reg in "eax":
+            if print_insn_mnem(hd) in "call":
+                return print_operand(hd, 0)     
+        # if reg/target is operand 0, and op1 is not a reg, return op1
+        if print_operand(hd, 0) in reg and print_insn_mnem(hd) in "mov":
+            if get_operand_type(hd, 1) != o_reg:
+                return print_operand(hd, 1)
+            else:
+                reg = print_operand(hd, 1)
 
 def trace_reg(start, target):
 # forward
@@ -355,7 +358,7 @@ def cpuid():
 
         if(eax_val is "None"):
             eax = "<unknown>"
-        # log("cpuid at 0x%08x"%(hd) + ": eax is " + str(eax))
+        log("cpuid at 0x%08x"%(hd) + ": eax is " + str(eax))
 
     # TODO : elaborate - output information on which registers are being accessed 
     # TODO : try to find what values are being stored or compared against     
@@ -527,73 +530,73 @@ def anti_debug(hd):
             return      
 
 def find_jump_to(hd):
-	# for terminate/end process, findwhere the jump was and what it was tested on
-	head = hd
-	function_head = get_func_attr(head, idc.FUNCATTR_START)
-	source = "<unknown>"
-	while(head != function_head):
-		head = prev_head(head)
-		r = CodeRefsTo(head, 1)
-		if r:
-			for ref in r:
-			    if is_jump(ref):
-			        #log("curr: 0x%08x"%(head) + " jump ref: 0x%08x"%(ref) + " jumps to: " + "0x%08x"%(get_operand_value(ref, 0)))
-			        # examine instructiion right before jump
-			        head = prev_head(head)
-			        head = prev_head(head)
-			        op0 = print_operand(head, 0)
-			        op1 = print_operand(head, 1)
-			        if(print_insn_mnem(head) in "test"):
-			        	if(print_operand(head, 0) in print_operand(head, 1)):
-			        		# it's testing if operand is 0
-			        		# now get the operand
-			        		if(get_operand_type(head, 1) is o_reg):
-			        			regnum = get_operand_value(head, o_reg)
-			        			# if it's eax or al (0 or 16) check for a "call" recently
-			        			# which is done in trace_back
-			        			if regnum is 0 or regnum is 16:
-			        			    source = trace_back(head, op0)
-			        		operands = (op0, op1)			        			    
-			        elif(print_insn_mnem(head) in "cmp"):
-						if(op0 in "eax" or op0 in "al"):
-							source = trace_back(head, op0)
-						elif(op1 in "eax" or op1 in "al"):
-							source = trace_back(head, op1)
-					# return (jumploc, conditionalloc, source)
-			        return ("0x%08x"%(ref), "0x%08x"%(head), source) 
-	return ("<unk>", "<unk>", "<unk>")
+    # for terminate/end process, findwhere the jump was and what it was tested on
+    head = hd
+    function_head = get_func_attr(head, idc.FUNCATTR_START)
+    source = "<unknown>"
+    while(head != function_head):
+        head = prev_head(head)
+        r = CodeRefsTo(head, 1)
+        if r:
+            for ref in r:
+                if is_jump(ref):
+                    #log("curr: 0x%08x"%(head) + " jump ref: 0x%08x"%(ref) + " jumps to: " + "0x%08x"%(get_operand_value(ref, 0)))
+                    # examine instructiion right before jump
+                    head = prev_head(head)
+                    head = prev_head(head)
+                    op0 = print_operand(head, 0)
+                    op1 = print_operand(head, 1)
+                    if(print_insn_mnem(head) in "test"):
+                        if(print_operand(head, 0) in print_operand(head, 1)):
+                            # it's testing if operand is 0
+                            # now get the operand
+                            if(get_operand_type(head, 1) is o_reg):
+                                regnum = get_operand_value(head, o_reg)
+                                # if it's eax or al (0 or 16) check for a "call" recently
+                                # which is done in trace_back
+                                if regnum is 0 or regnum is 16:
+                                    source = trace_back(head, op0)
+                            operands = (op0, op1)                                   
+                    elif(print_insn_mnem(head) in "cmp"):
+                        if(op0 in "eax" or op0 in "al"):
+                            source = trace_back(head, op0)
+                        elif(op1 in "eax" or op1 in "al"):
+                            source = trace_back(head, op1)
+                    # return (jumploc, conditionalloc, source)
+                    return ("0x%08x"%(ref), "0x%08x"%(head), source) 
+    return ("<unk>", "<unk>", "<unk>")
 
 def find_hProcess_handle(hd):
-	head = hd
-	# function_head = get_func_attr(hd, idc.FUNCATTR_START)
-	head = prev_head(head) 	
-	if print_insn_mnem(head) in "mov" and "[esp" in print_operand(head, 0):
-	    handle = print_operand(head, 1)
-	    if(get_operand_type(head, 1) is o_reg):
-	       handle = trace_back(head, print_operand(head, 1))
-	    return handle
+    head = hd
+    # function_head = get_func_attr(hd, idc.FUNCATTR_START)
+    head = prev_head(head)  
+    if print_insn_mnem(head) in "mov" and "[esp" in print_operand(head, 0):
+        handle = print_operand(head, 1)
+        if(get_operand_type(head, 1) is o_reg):
+           handle = trace_back(head, print_operand(head, 1))
+        return handle
 
 def find_related_process(hd):
-	"""
-	GetCurrentProcessId
-	OpenProcess
-	CreateProcessA
-	"""
-	process_funcs = ["GetCurrentProcessId", "OpenProcess", "CreateProcess"]
-	head = hd
-	function_head = get_func_attr(head, idc.FUNCATTR_START)
-	while(head != function_head):
-		head = prev_head(head)
-		if print_insn_mnem(head) in "call":
-			for func in process_funcs:
-			    if str.lower(func) in str.lower(GetDisasm(head)):                    
-					if func is "GetCurrentProcessId":
-						log("0x%08x"%(function_head) + " Function includes 'GetCurrentProcessId': Likely Terminating own process")
-					elif func is "CreateProcess":
-						log("0x%08x"%(function_head) + " Function includes 'CreateProcess': Likely Terminating a Created process")
-					else:
-					    log("0x%08x"%(function_head) + " Function includes 'OpenProcess': Possibly Terminating a different process")
-	return
+    """
+    GetCurrentProcessId
+    OpenProcess
+    CreateProcessA
+    """
+    process_funcs = ["GetCurrentProcessId", "OpenProcess", "CreateProcess"]
+    head = hd
+    function_head = get_func_attr(head, idc.FUNCATTR_START)
+    while(head != function_head):
+        head = prev_head(head)
+        if print_insn_mnem(head) in "call":
+            for func in process_funcs:
+                if str.lower(func) in str.lower(GetDisasm(head)):                    
+                    if func is "GetCurrentProcessId":
+                        log("0x%08x"%(function_head) + " Function includes 'GetCurrentProcessId': Likely Terminating own process")
+                    elif func is "CreateProcess":
+                        log("0x%08x"%(function_head) + " Function includes 'CreateProcess': Likely Terminating a Created process")
+                    else:
+                        log("0x%08x"%(function_head) + " Function includes 'OpenProcess': Possibly Terminating a different process")
+    return
 
 def term():
     names = Names()
@@ -611,15 +614,15 @@ def term():
                     terminate_process[name[1]].append((XrefTypeName(xref.type), "0x%08x"%(xref.frm)))
 
             elif ("TerminateProcess" in name[1]):
-            	if name[1] not in terminate_process:                    
-                	terminate_process[name[1]] = []
+                if name[1] not in terminate_process:                    
+                    terminate_process[name[1]] = []
                     
-                xrefs = XrefsTo(name[0]) 				
+                xrefs = XrefsTo(name[0])                
                 for xref in xrefs:
- 				   find_related_process(xref.frm)
- 				   retval = find_hProcess_handle(xref.frm)
- 				   jump_result = find_jump_to(xref.frm) 				   
- 				   terminate_process[name[1]].append((XrefTypeName(xref.type), "0x%08x"%(xref.frm), retval, jump_result[0], jump_result[1], jump_result[2]))
+                   find_related_process(xref.frm)
+                   retval = find_hProcess_handle(xref.frm)
+                   jump_result = find_jump_to(xref.frm)                    
+                   terminate_process[name[1]].append((XrefTypeName(xref.type), "0x%08x"%(xref.frm), retval, jump_result[0], jump_result[1], jump_result[2]))
         except StopIteration:
             break        
         
@@ -664,7 +667,8 @@ def main_loop():
                 int3_loc.append(hd)
                 if "int3" in flags:
                     hijack_int3(hd)
-              	# todo - if these exist, find if malware counts them?
+                # todo - if these exist, find if malware counts them?
+                # output number of int3s originally
             #debugger checks
             if(dbg_flags):
                 anti_debug(hd)
@@ -681,7 +685,9 @@ def main():
     -a  all (except patch)
     -p  <type> (autopatch - see below)
         int3   replace int3 with nop
-        patch replace jumps from timing and debug with opposite jump        
+        timing replace jumps from timing/etc with opposite jump
+        debug  replace jumps from debug/etc with opposite jump 
+    -j  ??
     -t  timing
     -i  int3
     -c  cpuid
@@ -689,10 +695,12 @@ def main():
     -d  debug
     -x  xor
     -search <string>
-    -f   termination analysis
-    -L logs to directory of input executable
-    # TODO: better flag parsing
+    -term   termination analysis
+    -L log
+    # TODO?: better flag parsing
     """
+    # -A ?
+    # TODO TEST: log to file
     # or idat.exe
     start()
     fp = 0
@@ -708,7 +716,7 @@ def main():
 
     # close file pointer if it's been opened
     if fp:
-    	fp.close()
+        fp.close()
 
     log_results()
     finish()
